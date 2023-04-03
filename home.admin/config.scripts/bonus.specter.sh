@@ -260,7 +260,7 @@ if [ "$1" = "1" ] || [ "$1" = "on" ]; then
     check_and_install_python310
     sudo -u specter /home/specter/.env/bin/python3 -m pip install --upgrade pip
 
-   echo "#    --> pip-installing specter"
+    echo "#    --> pip-installing specter"
     sudo -u specter /home/specter/.env/bin/python3 -m pip install --upgrade cryptoadvance.specter==$pinnedVersion || exit 1
 
     # activating Authentication here ...
@@ -466,7 +466,11 @@ if [ "$1" = "0" ] || [ "$1" = "off" ]; then
     deleteData="0"
   fi
   if [ "${deleteData}" == "" ]; then
-    deleteData=whiptail --defaultno --yesno "Do you want to delete all Data related to specter? This includes also Bitcoin-Core-Wallets managed by specter?" 0 0
+    if (whiptail --title "Delete Data?" --yes-button "Keep Data" --no-button "Delete Data" --yesno "Do you want to delete all Data related to specter? This includes also Bitcoin-Core-Wallets managed by specter?" 8 78) then
+      deleteData="0"
+    else
+      deleteData="1"
+    fi
   fi
 
   # execute on delete data
