@@ -393,8 +393,16 @@ EOF
 
     sudo mv /home/admin/specter.service /etc/systemd/system/specter.service
     sudo systemctl enable specter
+    echo "#    --> OK - the specter service is now enabled"
 
-    echo "#    --> OK - the specter service is now enabled and started"
+    source <(/home/admin/_cache.sh get state)
+    if [ "${state}" == "ready" ]; then
+      # start service
+      echo "#    --> starting service ..."
+      sudo systemctl start specter
+      echo "#    --> OK - the specter service is now started"
+    fi
+
   else
     echo "#    --> specter already installed."
   fi
