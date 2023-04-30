@@ -1,7 +1,7 @@
 #!/bin/bash
 # https://github.com/cryptoadvance/specter-desktop
 
-pinnedVersion="2.0.1"
+pinnedVersion="2.0.2-pre2"
 
 # command info
 if [ $# -eq 0 ] || [ "$1" = "-h" ] || [ "$1" = "-help" ]; then
@@ -38,7 +38,7 @@ function check_and_install_python310() {
     # Remove the existing virtual environment directory
     sudo -u specter rm -rf /home/specter/.env/
     # Create a new virtual environment with the new version of Python
-    sudo -u specter python3.10 -m venv /home/specter/.env/
+    sudo -u specter "python3.10" -m venv /home/specter/.env/
   fi
 }
 
@@ -152,13 +152,64 @@ function configure_specter {
     "proxy_url": "${proxy}",
     "only_tor": "${torOnly}",
     "tor_control_port": "${tor_control_port}",
-    "tor_status": true,
+    "tor_status": false,
     "hwi_bridge_url": "/hwi/api/"
 }
 EOF
   sudo mkdir -p /home/specter/.specter/nodes
   sudo mv /home/admin/config.json /home/specter/.specter/config.json
   sudo chown -RL specter:specter /home/specter/
+
+  echo "# Adding the raspiblitz_${chain}net node to Specter"
+  RPCUSER=$(sudo cat /mnt/hdd/${network}/${network}.conf | grep rpcuser | cut -c 9-)
+  PASSWORD_B=$(sudo cat /mnt/hdd/${network}/${network}.conf | grep rpcpassword | cut -c 13-)
+
+  echo "# Connect Specter to the default mainnet node"
+  cat > /home/admin/default.json <<EOF
+{
+    "name": "raspiblitz_mainnet",
+    "alias": "default",
+    "autodetect": false,
+    "datadir": "",
+    "user": "${RPCUSER}",
+    "password": "${PASSWORD_B}",
+    "port": "8332",
+    "host": "localhost",
+    "protocol": "http",
+    "external_node": true,
+    "fullpath": "/home/specter/.specter/nodes/default.json"
+}
+EOF
+    sudo mv /home/admin/default.json /home/specter/.specter/nodes/default.json
+    sudo chown -RL specter:specter /home/specter/
+
+    if [ "${chain}" != "main" ]; then
+      if [ "${chain}" = "test" ];then
+        portprefix=1
+      elif [ "${chain}" = "sig" ];then
+        portprefix=3
+      fi
+      PORT="${portprefix}8332"
+
+      echo "# Connect Specter to the raspiblitz_${chain}net node"
+      cat > /home/admin/raspiblitz_${chain}net.json <<EOF
+{
+    "name": "raspiblitz_${chain}net",
+    "alias": "raspiblitz_${chain}net",
+    "autodetect": false,
+    "datadir": "",
+    "user": "${RPCUSER}",
+    "password": "${PASSWORD_B}",
+    "port": "${PORT}",
+    "host": "localhost",
+    "protocol": "http",
+    "external_node": true,
+    "fullpath": "/home/specter/.specter/nodes/raspiblitz_${chain}net.json"
+}
+EOF
+      sudo mv /home/admin/raspiblitz_${chain}net.json /home/specter/.specter/nodes/raspiblitz_${chain}net.json
+      sudo chown -RL specter:specter /home/specter/
+    fi
 }
 
 # config
@@ -206,13 +257,13 @@ if [ "$1" = "1" ] || [ "$1" = "on" ]; then
     sudo chown -R specter:specter /home/specter/.specter
 
     echo "#    --> creating a virtualenv"
-    sudo -u specter virtualenv --python=python3 /home/specter/.env
-
     check_and_install_python310
+    #sudo -u specter python3 -m venv /home/specter/.env/
     sudo -u specter /home/specter/.env/bin/python3 -m pip install --upgrade pip
 
     echo "#    --> pip-installing specter"
-    sudo -u specter /home/specter/.env/bin/python3 -m pip install --upgrade cryptoadvance.specter==$pinnedVersion || exit 1
+    #sudo -u specter /home/specter/.env/bin/python3 -m pip install --pre --upgrade cryptoadvance.specter==$pinnedVersion || exit 1
+    sudo -u specter /home/specter/.env/bin/python3 -m pip install --pre cryptoadvance.specter==$pinnedVersion || exit 1
 
     # activating Authentication here ...
     configure_specter
@@ -463,7 +514,7 @@ if [ "$1" = "update" ]; then
   check_and_install_python310
 
   sudo -u specter /home/specter/.env/bin/python3 -m pip install --upgrade pip
-  sudo -u specter /home/specter/.env/bin/python3 -m pip install --upgrade cryptoadvance.specter
+  sudo -u specter /home/specter/.env/bin/python3 -m pip install --upgrade --pre cryptoadvance.specter
   echo "#    --> Updated to the latest in https://pypi.org/project/cryptoadvance.specter/#history ***"
   echo "#    --> Restarting the specter.service"
   sudo systemctl restart specter
