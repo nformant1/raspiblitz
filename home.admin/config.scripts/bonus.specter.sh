@@ -20,7 +20,7 @@ if [ $# -gt 1 ]; then
 fi
 
 function check_and_install_python310() {
-  if ! /home/specter/.env/bin/python3 --version | grep -q "3.10"; then
+  if ! /home/specter/.env/bin/python3 --version 2>/dev/null | grep -q "3.10"; then
     echo "#    --> Python 3.10 is not installed. Installing it now."
     # Install the required packages to add a PPA
     sudo apt install software-properties-common gnupg2 -y
